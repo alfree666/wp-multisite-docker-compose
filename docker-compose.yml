@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+
+# Base de datos
+
+  db:
+    container_name: db1    
+    image: mysql:8.0.22
+    command: '--default-authentication-plugin=mysql_native_password'
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"    
+    environment:
+      DB_HOST: localhost
+      MYSQL_ROOT_PASSWORD: p4ssw0rd
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: userwp
+      MYSQL_PASSWORD: p4ssw0rd
+    networks:
+      - wpsite1
+
+# phpMyAdmin
+
+  phpmyadmin:
+    container_name: pma1
+    image: phpmyadmin/phpmyadmin    
+    depends_on:
+      - db
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: p4ssw0rd
+    networks:
+      - wpsite1
+
+# Wordpress
+
+  wordpress:
+    container_name: wp1
+    image: wordpress:latest       
+    depends_on:
+      - db
+    volumes:
+      - ./wordpress:/var/www/html  
+      - ./config/php.conf.ini:/usr/local/etc/php/conf.d/php.ini   
+    restart: unless-stopped
+    ports:
+      - "80:80" 
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: userwp
+      WORDPRESS_DB_PASSWORD: p4ssw0rd
+      WORDPRESS_TABLE_PREFIX: 'myn_' 
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_ALLOW_MULTISITE', true);
+        define('WP_POST_REVISIONS', 3);
+        define('MEDIA_TRASH', true);
+        define('WP_MEMORY_LIMIT', '256M');
+        define('WP_MAX_MEMORY_LIMIT', '512M');
+    networks:
+      - wpsite1
+
+networks:
+  wpsite1:
+
+volumes:
+  db_data: 
+  wordpress: 
